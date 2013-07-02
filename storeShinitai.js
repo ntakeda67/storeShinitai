@@ -4,33 +4,65 @@ var twitter  = require('mtwitter')
 ;
 var stream = require('stream');
 var util = require('util');
-
+var tweetSeparator = "\r";
+var remainChunkStr = "";
 
 function TimeLineStream() {
     this.writable = true;
     this.readable = false;
     this.ended = false;
+    //this.oncoding = 'utf8';
     this.buf = '';
     this.searched = false;
 };
 util.inherits(TimeLineStream, stream.Writable);
-TimeLineStream.prototype.write =function(chunk, encoding){
-  var jsonString = JSON.parse(chunk.toString('utf8'));
-  if ( !('id' in jsonString) ) {
-      return;
-  }
-  
-  if (!isSchemaDefined) {
-      PostSchema = new Schema( makeSchema(jsonString, '') )
-          Post       = mongoose.model('Post', PostSchema)
-          isSchemaDefined = true;
-  }
-  var post = new Post(jsonString);
-  post.save( function(err) {
-          if (err) console.error(err);
-      });
-}
 
+TimeLineStream.prototype.write =function(chunk, encoding){
+    remainChunkStr +=  chunk.toString('utf8');
+    var tweetSeparatorIndex = remainChunkStr.indexOf(tweetSeparator);
+
+    if(tweetSeparatorIndex < 0){
+	// tweet is not completed.
+	return;
+    }
+
+    var tweetString = remainChunkStr.slice(0, tweetSeparatorIndex);
+    var jsonString = parseJsonString(tweetString);
+    if(jsonString === "" || jsonString === tweetSeparator){
+	return;
+    }
+
+    remainChunkStr = remainChunkStr.slice(tweetSeparatorIndex + 1);
+
+    if ( !('id' in jsonString) ) {
+	return;
+    }
+
+    if (!isSchemaDefined) {
+	PostSchema = new Schema( makeSchema(jsonString, '') )
+	Post       = mongoose.model('Post', PostSchema)
+	isSchemaDefined = true;
+    }
+    var post = new Post(jsonString);
+    post.save( function(err) {
+	    if (err) {
+		console.error(err);
+	    }
+	});
+
+    function parseJsonString(string){
+	console.log(string);
+	try{
+	    return jsonString = JSON.parse(string);
+	} catch(e){
+	    console.error('json parse error', e);
+	    return "";
+	}
+    }
+
+
+}
+    
 // typeof
 var typeMap = {
     number   : Number,
@@ -46,6 +78,8 @@ function makeSchema(data) {
         var type = typeof data[x];
         if (data[x] === null) {
             schema[x] = Object;
+	} else if (x==='created_at'){
+	    schema[x] = Date;
         } else if (type === 'object') {
             schema[x] = makeSchema(data[x]) ;
         } else {
@@ -59,10 +93,10 @@ mongoose.connect('mongodb://localhost/Twitter');
 var PostSchema, Post, isSchemaDefined = false;
 
 new twitter({
-        consumer_key        : 'your consumer key',
-        consumer_secret     : 'your cousumer secret key',
-        access_token_key    : 'your access token key',
-        access_token_secret : 'your access token secret key'
+        consumer_key        : 'xCk9CG2JwaKS0LmAX6XR6Q',
+        consumer_secret     : 'VQGxiPIA3W1Sv5mPfWYq0eoT7dlorjcr8JGBGxmUk',
+        access_token_key    : '15029018-Ku4dweUBlRaWUdBSsrz4V3nHuY6vPkzqURRtfS4Kw',
+        access_token_secret : 'pfUqbdxQJ6C92FjqMyGyuz9FUaROlyo2OyrJS03nc'
         }).stream.raw(
            'GET',
            'https://stream.twitter.com/1.1/statuses/filter.json',
@@ -71,5 +105,5 @@ new twitter({
            );
 
 process.on('uncaughtException', function (err) {
-        console.log('uncaughtException => ' + err);
+        console.log('uncaughtException => ',err);
 });
