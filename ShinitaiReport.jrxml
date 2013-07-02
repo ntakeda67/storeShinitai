@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="ShinitaiReport" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="b7427ea3-fa25-4635-80e5-fd29c31f2f40">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<queryString language="MongoDbQuery">
+		<![CDATA[{
+ 'collectionName' : 'posts',
+ 'findFields': {'user.name':'1', 'created_at':'1'},
+ 'findQuery' : {
+   'retweeted_status': {'$exists':false},
+  },
+ 'sort' : {'created_at':1}
+}]]>
+	</queryString>
+	<field name="_id" class="org.bson.types.ObjectId"/>
+	<field name="created_at" class="java.util.Date"/>
+	<field name="user.name" class="java.lang.String"/>
+	<variable name="tweetCount" class="java.lang.Integer" resetType="Group" resetGroup="TweetDateGroup" calculation="Count">
+		<variableExpression><![CDATA[1]]></variableExpression>
+	</variable>
+	<variable name="tweetDateString" class="java.lang.String">
+		<variableExpression><![CDATA[$F{created_at}.format("yyyyMMddHHmm")]]></variableExpression>
+	</variable>
+	<group name="TweetDateGroup">
+		<groupExpression><![CDATA[$V{tweetDateString}]]></groupExpression>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<summary>
+		<band height="338" splitType="Stretch">
+			<timeSeriesChart>
+				<chart>
+					<reportElement uuid="ff6fd3ac-3aab-4d0f-8cb9-ec36cad7659b" x="0" y="0" width="555" height="338"/>
+					<chartTitle/>
+					<chartSubtitle/>
+					<chartLegend/>
+				</chart>
+				<timeSeriesDataset timePeriod="Minute">
+					<timeSeries>
+						<seriesExpression><![CDATA["Shinitai"]]></seriesExpression>
+						<timePeriodExpression><![CDATA[$F{created_at}]]></timePeriodExpression>
+						<valueExpression><![CDATA[$V{tweetCount}]]></valueExpression>
+					</timeSeries>
+				</timeSeriesDataset>
+				<timeSeriesPlot>
+					<plot/>
+					<timeAxisLabelExpression><![CDATA["SHIINITAI TIME "]]></timeAxisLabelExpression>
+					<timeAxisFormat>
+						<axisFormat/>
+					</timeAxisFormat>
+					<valueAxisLabelExpression><![CDATA["SHINITAI"]]></valueAxisLabelExpression>
+					<valueAxisFormat>
+						<axisFormat/>
+					</valueAxisFormat>
+					<rangeAxisMinValueExpression><![CDATA[0]]></rangeAxisMinValueExpression>
+				</timeSeriesPlot>
+			</timeSeriesChart>
+		</band>
+	</summary>
+</jasperReport>
