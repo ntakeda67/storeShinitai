@@ -3,27 +3,49 @@
 	<property name="ireport.zoom" value="1.0"/>
 	<property name="ireport.x" value="0"/>
 	<property name="ireport.y" value="0"/>
+	<parameter name="BEGIN_DATE" class="java.util.Date">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="END_DATE" class="java.util.Date">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
 	<queryString language="MongoDbQuery">
 		<![CDATA[{
  'collectionName' : 'posts',
  'findFields': {'user.name':'1', 'created_at':'1'},
  'findQuery' : {
-   'retweeted_status': {'$exists':false},
+   'retweeted_status': { '$exists': false },
+   'created_at': {
+    '$gte': $P{BEGIN_DATE},
+    '$lt': $P{END_DATE}
+     }
   },
- 'sort' : {'created_at':1}
+ 'sort' : {'created_at': 1}
 }]]>
 	</queryString>
 	<field name="_id" class="org.bson.types.ObjectId"/>
 	<field name="created_at" class="java.util.Date"/>
 	<field name="user.name" class="java.lang.String"/>
-	<variable name="tweetCount" class="java.lang.Integer" resetType="Group" resetGroup="TweetDateGroup" calculation="Count">
+	<variable name="tweetCount" class="java.lang.Integer" resetType="Group" resetGroup="DateMinuteGroup" calculation="Sum">
 		<variableExpression><![CDATA[1]]></variableExpression>
 	</variable>
-	<variable name="tweetDateString" class="java.lang.String">
-		<variableExpression><![CDATA[$F{created_at}.format("yyyyMMddHHmm")]]></variableExpression>
+	<variable name="tweetDate" class="java.lang.String" resetType="Column">
+		<variableExpression><![CDATA[$F{created_at}.format("yyyy/MM/dd EEE")]]></variableExpression>
 	</variable>
-	<group name="TweetDateGroup">
-		<groupExpression><![CDATA[$V{tweetDateString}]]></groupExpression>
+	<variable name="tweetDateMinute" class="java.lang.String" resetType="Column">
+		<variableExpression><![CDATA[$F{created_at}.format("yyyy/MM/dd HH:mm")]]></variableExpression>
+	</variable>
+	<variable name="tweetTime" class="java.util.Date" resetType="Column">
+		<variableExpression><![CDATA[$F{created_at}.updated(year:2010, month:1, date:1)]]></variableExpression>
+	</variable>
+	<group name="DateGroup">
+		<groupExpression><![CDATA[$V{tweetDate}]]></groupExpression>
+	</group>
+	<group name="DateMinuteGroup">
+		<groupExpression><![CDATA[$V{tweetDateMinute}]]></groupExpression>
+	</group>
+	<group name="TimeGroup">
+		<groupExpression><![CDATA[$V{tweetTime}]]></groupExpression>
 	</group>
 	<background>
 		<band splitType="Stretch"/>
@@ -37,16 +59,16 @@
 					<chartSubtitle/>
 					<chartLegend/>
 				</chart>
-				<timeSeriesDataset timePeriod="Minute">
+				<timeSeriesDataset timePeriod="Hour">
 					<timeSeries>
-						<seriesExpression><![CDATA["Shinitai"]]></seriesExpression>
-						<timePeriodExpression><![CDATA[$F{created_at}]]></timePeriodExpression>
+						<seriesExpression><![CDATA[$V{tweetDate}]]></seriesExpression>
+						<timePeriodExpression><![CDATA[$V{tweetTime}]]></timePeriodExpression>
 						<valueExpression><![CDATA[$V{tweetCount}]]></valueExpression>
 					</timeSeries>
 				</timeSeriesDataset>
 				<timeSeriesPlot>
 					<plot/>
-					<timeAxisLabelExpression><![CDATA["SHIINITAI TIME "]]></timeAxisLabelExpression>
+					<timeAxisLabelExpression><![CDATA["SHIINITAI TIME"]]></timeAxisLabelExpression>
 					<timeAxisFormat>
 						<axisFormat/>
 					</timeAxisFormat>
