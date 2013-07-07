@@ -12,9 +12,8 @@
 	<queryString language="MongoDbQuery">
 		<![CDATA[{
  'collectionName' : 'posts',
- 'findFields': {'user.name':'1', 'created_at':'1'},
+ 'findFields': {'user.name':'1', 'created_at':'1', 'retweeted_status.created_at':'1'},
  'findQuery' : {
-   'retweeted_status': { '$exists': false },
    'created_at': {
     '$gte': $P{BEGIN_DATE},
     '$lt': $P{END_DATE}
@@ -25,37 +24,40 @@
 	</queryString>
 	<field name="_id" class="org.bson.types.ObjectId"/>
 	<field name="created_at" class="java.util.Date"/>
+	<field name="retweeted_status.created_at" class="java.util.Date"/>
 	<field name="user.name" class="java.lang.String"/>
-	<variable name="tweetCount" class="java.lang.Integer" resetType="Group" resetGroup="DateMinuteGroup" calculation="Sum">
+	<variable name="isRetweet" class="java.lang.String">
+		<variableExpression><![CDATA[$F{retweeted_status.created_at} == null ? "Not RT" : "RT"]]></variableExpression>
+	</variable>
+	<variable name="tweetCount" class="java.lang.Integer" resetType="Group" resetGroup="DateHourGroup" calculation="Sum">
 		<variableExpression><![CDATA[1]]></variableExpression>
 	</variable>
-	<variable name="tweetDate" class="java.lang.String" resetType="Column">
+	<variable name="tweetDate" class="java.lang.String">
 		<variableExpression><![CDATA[$F{created_at}.format("yyyy/MM/dd EEE")]]></variableExpression>
 	</variable>
-	<variable name="tweetDateMinute" class="java.lang.String" resetType="Column">
-		<variableExpression><![CDATA[$F{created_at}.format("yyyy/MM/dd HH:mm")]]></variableExpression>
+	<variable name="tweetDateHour" class="java.lang.String">
+		<variableExpression><![CDATA[$F{created_at}.format("yyyy/MM/dd HH")]]></variableExpression>
 	</variable>
-	<variable name="tweetTime" class="java.util.Date" resetType="Column">
-		<variableExpression><![CDATA[$F{created_at}.updated(year:2010, month:1, date:1)]]></variableExpression>
+	<variable name="tweetTime" class="java.util.Date">
+		<variableExpression><![CDATA[$F{created_at}.updated(year:2010, month:1, date:1, second:0)]]></variableExpression>
 	</variable>
 	<group name="DateGroup">
 		<groupExpression><![CDATA[$V{tweetDate}]]></groupExpression>
 	</group>
-	<group name="DateMinuteGroup">
-		<groupExpression><![CDATA[$V{tweetDateMinute}]]></groupExpression>
-	</group>
-	<group name="TimeGroup">
-		<groupExpression><![CDATA[$V{tweetTime}]]></groupExpression>
+	<group name="DateHourGroup">
+		<groupExpression><![CDATA[$V{tweetDateHour}]]></groupExpression>
 	</group>
 	<background>
 		<band splitType="Stretch"/>
 	</background>
 	<summary>
-		<band height="338" splitType="Stretch">
+		<band height="581" splitType="Stretch">
 			<timeSeriesChart>
 				<chart>
 					<reportElement uuid="ff6fd3ac-3aab-4d0f-8cb9-ec36cad7659b" x="0" y="0" width="555" height="338"/>
-					<chartTitle/>
+					<chartTitle>
+						<titleExpression><![CDATA["時間帯別しにたいツイート数"]]></titleExpression>
+					</chartTitle>
 					<chartSubtitle/>
 					<chartLegend/>
 				</chart>
@@ -68,17 +70,46 @@
 				</timeSeriesDataset>
 				<timeSeriesPlot>
 					<plot/>
-					<timeAxisLabelExpression><![CDATA["SHIINITAI TIME"]]></timeAxisLabelExpression>
+					<timeAxisLabelExpression><![CDATA["SHIINITAI Time"]]></timeAxisLabelExpression>
 					<timeAxisFormat>
 						<axisFormat/>
 					</timeAxisFormat>
-					<valueAxisLabelExpression><![CDATA["SHINITAI"]]></valueAxisLabelExpression>
+					<valueAxisLabelExpression><![CDATA["しにたいツイート数"]]></valueAxisLabelExpression>
 					<valueAxisFormat>
 						<axisFormat/>
 					</valueAxisFormat>
 					<rangeAxisMinValueExpression><![CDATA[0]]></rangeAxisMinValueExpression>
 				</timeSeriesPlot>
 			</timeSeriesChart>
+			<stackedBarChart>
+				<chart>
+					<reportElement uuid="7df9392f-cf32-47ca-b989-812d8b76d8e5" x="6" y="338" width="549" height="243"/>
+					<chartTitle>
+						<titleExpression><![CDATA["時間帯・RT種別 しにたいツイート数"]]></titleExpression>
+					</chartTitle>
+					<chartSubtitle>
+						<subtitleExpression><![CDATA[$P{BEGIN_DATE}.format("yyyy/MM/dd") + "-" + $P{END_DATE}.format("yyyy/MM/dd")]]></subtitleExpression>
+					</chartSubtitle>
+					<chartLegend/>
+				</chart>
+				<categoryDataset>
+					<categorySeries>
+						<seriesExpression><![CDATA[$V{isRetweet}]]></seriesExpression>
+						<categoryExpression><![CDATA[$V{tweetTime}.format("HH")]]></categoryExpression>
+						<valueExpression><![CDATA[$V{tweetCount}]]></valueExpression>
+					</categorySeries>
+				</categoryDataset>
+				<barPlot>
+					<plot/>
+					<itemLabel/>
+					<categoryAxisFormat>
+						<axisFormat verticalTickLabels="true"/>
+					</categoryAxisFormat>
+					<valueAxisFormat>
+						<axisFormat/>
+					</valueAxisFormat>
+				</barPlot>
+			</stackedBarChart>
 		</band>
 	</summary>
 </jasperReport>
